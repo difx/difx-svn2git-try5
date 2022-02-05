@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 # /applications/doi/trunk/DiFXSim/
 /applications/doi/trunk/DiFXSim/*._.DS_Store
@@ -455,6 +456,8 @@
 
 # /virtualtrunk/
 =======
+=======
+>>>>>>> 1304204f4 (Convert svn:ignore properties to .gitignore)
 
 # /applications/doi/trunk/DiFXSim/
 /applications/doi/trunk/DiFXSim/*._.DS_Store
@@ -910,4 +913,7 @@
 /utilities/trunk/difxdb/getslot/Makefile.in
 
 # /virtualtrunk/
+<<<<<<< HEAD
 >>>>>>> 744467426 (Convert svn:ignore properties to .gitignore)
+=======
+>>>>>>> 1304204f4 (Convert svn:ignore properties to .gitignore)
