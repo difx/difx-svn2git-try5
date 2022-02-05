@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+
+# /applications/doi/trunk/DiFXSim/
+>>>>>>> 4eca84011 (Convert svn:ignore properties to .gitignore)
 /applications/doi/trunk/DiFXSim/*._.DS_Store
 
 # /applications/doi/trunk/DiFXUIs/src/
