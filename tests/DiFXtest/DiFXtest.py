@@ -5,6 +5,7 @@ import subprocess
 import argparse
 import shutil
 from astropy.io import fits 
+<<<<<<< HEAD
 import warnings
 
 def pre_checks():
@@ -18,6 +19,18 @@ def pre_checks():
     print('generateVDIF not found, please make sure it is installed.')  
     quit()
 
+=======
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--generateVDIF", help="Generate VDIF data? (yes/[no])",default="no")
+parser.add_argument("--updatetest", help="Update the default test results (yes/[no])",default="no") 
+input_args = parser.parse_args()
+generateVDIF = input_args.generateVDIF
+generateVDIF = generateVDIF.upper()
+updatetest = input_args.updatetest
+updatetest = updatetest.upper()
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
 
 
 def get_binary_files(directory):
@@ -67,6 +80,7 @@ def rm_output_files(testname):
 def runtest(testname):
   current_directory = os.getcwd() 
   working_directory = current_directory + "/" + testname + "/"
+<<<<<<< HEAD
 
   vex2difxlogfile = working_directory + "/vex2difx.log"
   vex2difxerrfile = working_directory + "/vex2difx.error"
@@ -92,16 +106,31 @@ def runtest(testname):
   difxerrfile = working_directory + "/mpifxcorr.error"
   f_difxlog = open(difxlogfile,"w")
   f_difxerr = open(difxerrfile,"w")
+=======
+  arg = "vex2difx test-" + testname + ".v2d"
+  proc =subprocess.Popen(arg,cwd=working_directory,shell=True)
+  proc.wait()
+
+  arg = "difxcalc test-" + testname + ".calc", 
+  subprocess.Popen(arg,cwd=working_directory,shell=True)
+  proc.wait()
+  arg = "mpirun -machinefile machines -np 4 mpifxcorr test-" + testname + ".input"
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
 
   mpifxcorr_done = False
   # DiFX fails sometimes, re-run until it succeeds (need better fix here...)
   while (mpifxcorr_done == False):
+<<<<<<< HEAD
     proc = subprocess.call(arg,cwd=working_directory,shell=True,stdout=f_difxlog,stderr=f_difxerr)
+=======
+    proc = subprocess.call(arg,cwd=working_directory,shell=True)
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
     contents = os.listdir(working_directory)
     for item in contents: 
       if (item[-5:] == '.difx'):
         mpifxcorr_done = True
   #proc.wait()
+<<<<<<< HEAD
   difx2fitslogfile = working_directory + "/difx2fits.log"
   difx2fitserrfile = working_directory + "/difx2fits.error"
   f_difx2fitslog = open(difx2fitslogfile,"w")
@@ -110,14 +139,25 @@ def runtest(testname):
 
   arg = "difx2fits test-" + testname
   proc = subprocess.Popen(arg,cwd=working_directory,shell=True,stdout=f_difx2fitslog,stderr=f_difx2fitserr)
+=======
+  arg = "difx2fits test-" + testname
+  proc = subprocess.Popen(arg,cwd=working_directory,shell=True)
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
   proc.wait()
  # quit()
 
 
+<<<<<<< HEAD
 def compare_results(testname, abstol, reltol):
 
   # results list [Binary file same as benchmark?,FITS file same as benchmark?]
   results = ["",True]
+=======
+def compare_results(testname):
+
+  # results list [Binary file same as benchmark?,FITS file same as benchmark?]
+  results = [True,True]
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
 
   current_directory = os.getcwd()
   working_directory = current_directory + "/" + testname + "/"   
@@ -137,6 +177,7 @@ def compare_results(testname, abstol, reltol):
   #print(fits_file)
   hdu1 = fits.open(fits_file)
   hdu2 = fits.open(fits_file_benchmark) 
+<<<<<<< HEAD
 
   warnings.resetwarnings()
   warnings.filterwarnings('ignore', category=UserWarning, append=True) 
@@ -159,6 +200,15 @@ def compare_results(testname, abstol, reltol):
   last_line = last_line.strip('\n')
   results[0] = last_line
 
+=======
+  fd = fits.FITSDiff(hdu1, hdu2, ignore_keywords=['DATE-MAP','CDATE','HISTORY'])  
+  diff_fitslog = working_directory + "/fits_diff.log"  
+  output = fd.report(fileobj=diff_fitslog, indent=0, overwrite=True) 
+  results[1] = fd.identical
+  print("comparing fits_file = " + fits_file + " VS. benchmark fits file = " + fits_file_benchmark)
+  print(fd.identical)
+  #print(output)
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
   return(results)
 
 def update_test(testname):
@@ -195,6 +245,7 @@ def repackage_tests(testnames):
   subprocess.call(tar_command,shell=True)
 
 
+<<<<<<< HEAD
 def unpackage_tests(testnames):
   unpack = False
   
@@ -205,11 +256,15 @@ def unpackage_tests(testnames):
     subprocess.call("tar -zxvf tests.tgz",shell=True)
 
 def create_test_data():
+=======
+if (generateVDIF == "YES"):
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
   # Create Synthetic VDIF Data
   DURATION=10
   
   SEED1=38573
   SEED2=58573
+<<<<<<< HEAD
 
   if (os.path.isdir("testdata") == False):
     os.mkdir("testdata")
@@ -375,6 +430,70 @@ def main():
 
 if __name__ == "__main__":
     main()
+=======
+  
+  # USB Real 
+  args = "generateVDIF -seed="+str(SEED1)+" -w 4 -b 2 -C 1 -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.5 -year 2020 -dayno 100 -time 07:00:00 testdata/TEST1.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l " + str(DURATION) + " -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 testdata/TEST2-usb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  
+  
+  ## LSB Real
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l " + str(DURATION) + " -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 -lsb testdata/TEST2-lsb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  
+  
+  ## Complex (single side band)
+  args = "generateVDIF -seed="+str(SEED1)+" -w 4 -b 2 -C 1  -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.5 -year 2020 -dayno 100 -time 07:00:00 -complex testdata/TEST1-complex-usb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 -hilbert testdata/TEST2-complex-usb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 -hilbert testdata/TEST2-complex-usb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 -hilbert -lsb testdata/TEST2-complex-lsb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  
+  ## Complex (double side band)
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 -hilbert -doublesideband testdata/TEST2-dsb-usb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+  args = "generateVDIF -seed="+str(SEED2)+" -w 4 -b 2 -C 1  -l "+str(DURATION)+" -noise -amp2 0.05 -tone2 1.0 -year 2020 -dayno 100 -time 07:00:00 -hilbert -doublesideband -lsb testdata/TEST2-dsb-lsb.vdif"
+  #print(args)
+  subprocess.call(args,shell=True)
+# end if (generateVDIF == "YES"):  
+
+
+# Run test correlations
+test_name_list = ["complex-complex","lsb","lsb-complex","lsb-dsb","usb","usb-complex","usb-dsb"]
+
+# Dictionary with pass/fail status of each test {"test name" : [binary file same (true/false), FITS file same (true/false)]}
+passfail = {"complex-complex":[True,True],"lsb":[True,True],"lsb-complex":[True,True],"lsb-dsb":[True,True],"usb":[True,True],"usb-complex":[True,True],"usb-dsb":[True,True]}
+
+#  
+for testname in test_name_list:
+  rm_output_files(testname)
+  runtest(testname)
+
+# Run comparison with the results
+for testname in test_name_list:
+  compare_results(testname)
+
+if (updatetest == "YES"):
+  for testname in test_name_list:
+    update_test(testname)
+  repackage_tests(test_name_list)
+
+#repackage_tests(test_name_list)
+>>>>>>> 3d7c666ee (Adding unit testing utility for difx)
 
 
 
