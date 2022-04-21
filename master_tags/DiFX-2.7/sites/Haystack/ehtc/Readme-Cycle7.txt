@@ -36,8 +36,13 @@
 # setup versioned tools -- very different per site
 # script that adds CASA 4.7.2 bin to PATH
 source ~/lib/casa.setup
+<<<<<<< HEAD
 source /swc/difx/setup-DiFX-2.7.1.bash      # 2021 production
 #source /swc/difx/setup-DiFX-2.7.bash       # 2021 test
+=======
+#source /swc/difx/setup-DiFX-2.7.1.bash     # 2021 production
+source /swc/difx/setup-DiFX-2.7.bash        # 2021 test
+>>>>>>> 43d9c62eb (version bump for 2.7(1))
 #source /swc/difx/setup-DiFX-2.6.2.bash     # 2017,2018
 #source /swc/difx/setup-DiFX-2.6.3.bash     # testing
 #source /swc/difx/setup-DiFX-2.7.bash       # 2021 target
