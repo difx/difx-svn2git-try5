@@ -2,6 +2,7 @@
 Version 1.5.5
 * m5d: allow passing - for input from stdin (backport from trunk)
 * fix possible crash due to blanker operating on invalid data (thanks to Mars Buttfield-Addison)
+* don't stop "example" programs when consecutive failures crosses threshold (backport from trunk)
 * Version for DiFX-2.6.3
 
 Version 1.5.4
