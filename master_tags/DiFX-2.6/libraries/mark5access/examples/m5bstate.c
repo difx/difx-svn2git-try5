@@ -20,8 +20,8 @@
 
 const char program[] = "m5bstate";
 const char author[]  = "Alessandra Bertarini";
-const char version[] = "1.3";
-const char verdate[] = "2015 May 21";
+const char version[] = "1.3.1";
+const char verdate[] = "2022 Apr 29";
 
 volatile int die = 0;
 
@@ -109,12 +109,6 @@ void process_realdata(struct mark5_stream *ms, int nframes, int nstates) {
     total += chunk;
     unpacked += status;
   }
-	      
-  if(ms->consecutivefails > 5)
-  {
-    break;
-  }
-	      
 	      
   for(i = 0; i < nif; i++) 
   {
@@ -247,11 +241,6 @@ void process_complexdata(struct mark5_stream *ms, int nframes, int nstates) {
 	unpacked += status;
       }
     
-    if(ms->consecutivefails > 5)
-      {
-	break;
-      }
-    
     
     for(i = 0; i < nif; i++) 
       {
@@ -377,11 +366,6 @@ void process_8bit_realdata(struct mark5_stream *ms, int nframes) {
     {
       total += chunk;
       unpacked += status;
-    }
-	      
-    if (ms->consecutivefails > 5)
-    {
-      break;
     }
 	      
 	      

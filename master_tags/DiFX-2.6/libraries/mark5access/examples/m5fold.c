@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2017 by Walter Brisken and Chris Phillips          *
+ *   Copyright (C) 2010-2022 by Walter Brisken and Chris Phillips          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -37,8 +37,8 @@
 
 const char program[] = "m5fold";
 const char author[]  = "Walter Brisken";
-const char version[] = "1.6";
-const char verdate[] = "20170422";
+const char version[] = "1.6.1";
+const char verdate[] = "20220429";
 
 const int ChunkSize = 10000;
 
@@ -195,13 +195,6 @@ static int fold(const char *filename, const char *formatname, int nbin, int nint
 				unpacked += status;
 			}
 
-			if(ms->consecutivefails > 5)
-			{
-				printf("Too many failures.  consecutive, total fails = %d %d\n", ms->consecutivefails, ms->nvalidatefail);
-
-				break;
-			}
-
 			for(k = 0; k < ChunkSize; ++k)
 			{
 				if(data[0][k] != 0.0)
@@ -258,13 +251,6 @@ static int fold(const char *filename, const char *formatname, int nbin, int nint
 			{
 				total += ChunkSize;
 				unpacked += status;
-			}
-
-			if(ms->consecutivefails > 5)
-			{
-				printf("Too many failures.  consecutive, total fails = %d %d\n", ms->consecutivefails, ms->nvalidatefail);
-
-				break;
 			}
 
 			for(k = 0; k < ChunkSize; ++k)
