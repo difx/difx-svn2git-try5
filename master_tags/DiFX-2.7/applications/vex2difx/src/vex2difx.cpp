@@ -1567,6 +1567,8 @@ static int getConfigIndex(vector<pair<string,string> >& configs, DifxInput *D, c
 		{
 			config->nBaseline += 2*nDatastream; // worst case if every datastream has a corresponding partner
 		}
+
+		config->nBaseline *= 2; // in case some freq-pols appear redundantly in two datastreams
 	}
 
 	//if guardNS was set to negative value, change it to the right amount to allow for
