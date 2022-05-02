@@ -1,0 +1,40 @@
+AC_INIT([vex2difx],[2.6.1],[Walter Brisken <wbrisken@nrao.edu>])
+AC_CONFIG_HEADERS([config.h])
+
+AC_C_BIGENDIAN
+ 
+AM_INIT_AUTOMAKE([foreign])
+
+AC_CONFIG_MACRO_DIR([m4])
+
+AC_PROG_CC
+AC_PROG_F77
+AC_PROG_CPP
+LT_INIT
+AC_PROG_YACC
+AC_PROG_LEX(yywrap)
+AM_SANITY_CHECK
+AC_PROG_CXX
+
+AM_SANITY_CHECK
+
+AC_CHECK_LIB(m, erf,,[AC_MSG_ERROR("need libm")])
+
+#AC_CONFIG_MACRO_DIR([m4])
+ 
+PKG_CHECK_MODULES(DIFXIO, difxio >= 3.7.0)
+PKG_CHECK_MODULES(DIFXMESSAGE, [difxmessage >= 2.6.0])
+PKG_CHECK_MODULES(DIRLIST, dirlist >= 0.1)
+
+LIBS="${LEXLIB} ${LIBS} ${DIFXIO_LIBS} ${DIRLIST_LIBS}"
+CFLAGS="${CFLAGS} ${DIFXIO_CFLAGS} ${DIFXMESSAGE_CFLAGS} ${DIRLIST_CFLAGS}"
+CXXFLAGS="${CFLAGS}"
+
+AC_CONFIG_FILES([ \
+	Makefile \
+	vex/Makefile \
+	vexdatamodel/Makefile \
+	src/Makefile \
+	utilities/Makefile \
+])
+AC_OUTPUT

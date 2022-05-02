@@ -1,0 +1,8 @@
+Version 0.1
+-----------
+* Initial version
+* Version for DiFX-2.5, May 16, 2017
+* Version for DiFX-2.6, Mar 4, 2019
+  - patch for getIntNSStart() applied from trunk
+* Version for DiFX-2.7, Sept 15, 2021
+

@@ -1,0 +1,4 @@
+11.0.1
+------
+* Increase number of SPACECRAFT rows supported from 200 to 1000
+* Version for DiFX-2.7, Sept 15, 2021
