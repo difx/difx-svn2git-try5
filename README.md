@@ -19,6 +19,15 @@ $ source setup/setup.bash # (or .csh).
 $ ./install-difx
 ```
 
+### Debian / Ubuntu
+
+Before install DiFX on Debian/Ubuntu ,you need install the following dependency:
+
+```bash
+$ apt-get update 
+$ apt-get install -y build-essential subversion libopenmpi-dev libfftw3-dev libtool flex bison pgplot5 pkg-config automake libexpat1-dev gfortran openmpi-bin doxygen
+
+```
 
 
 The troubleshooting area on http://www.atnf.csiro.au/vlbi/dokuwiki/doku.php/difx/start
