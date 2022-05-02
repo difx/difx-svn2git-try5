@@ -16,11 +16,13 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     libexpat1-dev \
     gfortran \
     openmpi-bin \
-    doxygen
+    doxygen \
+    git
 
 ADD . /difxsrc
 RUN useradd -ms /bin/bash difx\
     && chown difx.difx /difxsrc
+    && git config --global core.longpaths true
 USER difx
 WORKDIR /difxsrc/
 USER root
