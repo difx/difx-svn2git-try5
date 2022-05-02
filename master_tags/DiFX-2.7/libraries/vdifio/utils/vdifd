@@ -34,13 +34,13 @@ threadlist = argv[4]
 nt = len(split(threadlist, ','))
 n = int(argv[5])
 if len(argv) > 6:
-	nbit = int(argv[6])
-else:
-	nbit = 2
-if len(argv) > 7:
-	offset = int(argv[7])
+	offset = int(argv[6])
 else:
 	offset = 0
+if len(argv) > 7:
+	nbit = int(argv[7])
+else:
+	nbit = 2
 
 nc = 1
 while(nc < nt):

@@ -2,8 +2,8 @@
 
 program = 'vdifspec'
 author  = 'Walter Brisken'
-version = '0.4'
-verdate = '20180906'
+version = '0.4.1'
+verdate = '20211005'
 
 from os import system
 from string import split
@@ -24,7 +24,6 @@ def usage():
 	print '  <outfile> is the name of the output file\n'
 	print '  <nbit> is number of bits per sample (default is 2)\n'
 	print '  <offset> optionally jump into input file by this many bytes\n'
-	print 'Note: Only works on 2-bit real data for now...\n'
 
 if len(argv) < 8:
 	usage()

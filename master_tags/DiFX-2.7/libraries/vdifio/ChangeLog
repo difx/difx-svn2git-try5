@@ -1,3 +1,10 @@
+Version 1.4.1
+~~~~~~~~~~~
+* Version for DiFX-2.6.3 and DiFX-2.7
+* Backport from trunk fix for vdifd and vdiffold: get order of nbit and offset correct
+* Verified vdifd and vdifspec work correctly on 1, 2 and 8 bits
+* vmux: change default to not generating per-channel validity as this could lead to problematic behavior in programs not expecting that kind of output. (backport from trunk)
+
 Version 1.4
 ~~~~~~~~~~~
 * New helper functions to read VDIF file while pre-arranging data to be more palatable for the memory based vdifmux()
