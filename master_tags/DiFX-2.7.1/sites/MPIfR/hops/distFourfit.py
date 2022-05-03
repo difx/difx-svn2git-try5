@@ -42,7 +42,7 @@ from typing import List, Set
 
 ################################################################################################################
 
-DEFAULT_FOURFIT = '/cluster/hops/fourfit_d270'
+DEFAULT_FOURFIT = '/cluster/hops/fourfit_d271'
 DEFAULT_FOURFIT_OPTS = ['-m0', '-u']
 DEFAULT_CF = 'cf_1234'
 DEFAULT_FREQ_GROUP = ''
