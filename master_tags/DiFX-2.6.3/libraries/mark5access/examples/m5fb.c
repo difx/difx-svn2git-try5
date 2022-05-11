@@ -47,7 +47,7 @@
 const char program[] = "m5fb";
 const char author[]  = "Richard Dodson";
 //  Copied extensively from m5spec by Walter Brisken & Chris Phillips
-const char version[] = "1.2.1
+const char version[] = "1.2.1";
 const char verdate[] = "20220429";
 
 volatile int die = 0;
