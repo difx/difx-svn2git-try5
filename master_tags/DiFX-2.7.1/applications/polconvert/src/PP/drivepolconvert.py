@@ -534,8 +534,8 @@ def commonInputGrokkage(o):
         cfrq = sorted(list(cfrqset))
         o.mfreqset.add(cfrq[len(cfrq)//2])
     # update the set of jobs
+    if o.verb: print('Retaining',newargs,'out of',len(o.nargs),'jobs')
     o.nargs = newargs
-    if o.verb: print('Retaining',len(o.nargs),'jobs')
     # o.jobnums was synchronized above, but we need to resync
     # this, which was originally set in inputRelatedChecks()
     o.djobs = str(list(map(str,o.jobnums)))
@@ -667,6 +667,7 @@ def oldDeduceZoomIndices(o):
     o.remotelist = []
     o.remotename = []
     o.remote_map = []
+    o.zlist = []
     zoompatt = r'^ZOOM.FREQ.INDEX.\d+:\s*(\d+)'
     # we call it 'alma' but o.lin holds the choice
     almapatt = r'^TELESCOPE NAME %d:\s*%s' % (o.ant-1,o.lin)
@@ -737,7 +738,7 @@ def oldDeduceZoomIndices(o):
     # o.remotename and o.remote_map are just for readable diagnostics below
     # and we resync o.djobs here
     o.djobs = str(list(map(str,o.jobnums)))
-    if verb: print('jobs now "%s"'%o.djobs)
+    if o.verb: print('jobs now "%s"'%o.djobs)
     if len(zfirst) != 1 or len(zfinal) != 1:
         if o.zmchk:
             raise Exception('Encountered ambiguities in zoom freq ranges: ' +
@@ -1308,8 +1309,11 @@ if __name__ == '__main__':
     # run the jobs in parallel
     if opts.verb:
         print('\nParallel execution with %d threads\n' % opts.parallel)
-    createCasaInputParallel(opts)
-    executeCasaParallel(opts)
+    if len(opts.nargs) > 0:
+        createCasaInputParallel(opts)
+        executeCasaParallel(opts)
+    elif opts.verb:
+        print('\nWarning: after filtering, there were no jobs to execute\n')
     if opts.verb:
         print('\nDrivePolconvert execution is complete\n')
     # explicit 0 exit 
