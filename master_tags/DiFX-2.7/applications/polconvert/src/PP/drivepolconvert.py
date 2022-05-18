@@ -737,7 +737,7 @@ def oldDeduceZoomIndices(o):
     # o.remotename and o.remote_map are just for readable diagnostics below
     # and we resync o.djobs here
     o.djobs = str(list(map(str,o.jobnums)))
-    if verb: print('jobs now "%s"'%o.djobs)
+    if o.verb: print('jobs now "%s"'%o.djobs)
     if len(zfirst) != 1 or len(zfinal) != 1:
         if o.zmchk:
             raise Exception('Encountered ambiguities in zoom freq ranges: ' +
