@@ -831,7 +831,7 @@ void moveDifxBaseline(DifxBaseline *dest, DifxBaseline *src);
 int simplifyDifxBaselines(DifxInput *D);
 DifxBaseline *mergeDifxBaselineArrays(const DifxBaseline *db1, int ndb1,
 	const DifxBaseline *db2, int ndb2, int *baselineIdRemap,
-	const int *datastreamIdRemap, int *ndb);
+	const int *datastreamIdRemap, const int *freqIdRemap, int *ndb);
 int writeDifxBaselineArray(FILE *out, int nBaseline, const DifxBaseline *db);
 
 /* DifxPolyco functions */

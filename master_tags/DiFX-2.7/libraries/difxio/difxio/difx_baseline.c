@@ -419,7 +419,7 @@ int simplifyDifxBaselines(DifxInput *D)
 
 DifxBaseline *mergeDifxBaselineArrays(const DifxBaseline *db1, int ndb1,
 	const DifxBaseline *db2, int ndb2, int *baselineIdRemap,
-	const int *datastreamIdRemap, int *ndb)
+	const int *datastreamIdRemap, const int *freqIdRemap, int *ndb)
 {
 	int i, j;
 	DifxBaseline *db;
@@ -460,6 +460,15 @@ DifxBaseline *mergeDifxBaselineArrays(const DifxBaseline *db1, int ndb1,
 		{
 			copyDifxBaseline(db + baselineIdRemap[j], db2 + j,
 				datastreamIdRemap);
+			if(freqIdRemap)
+			{
+				DifxBaseline *bnew = db + baselineIdRemap[j];
+				int f;
+				for(f = 0; f < bnew->nFreq; f++)
+				{
+					bnew->destFq[f] = freqIdRemap[bnew->destFq[f]];
+				}
+			}
 		}
 	}
 
