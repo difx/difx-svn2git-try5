@@ -456,6 +456,7 @@ def commonInputGrokkage(o):
         o.mfreqset      set of median frequencies by job
         o.zfirst        global first (0-based) frequency index
         o.zfinal        global final (0-based) frequency index
+        o.zffs          per-scan (zfirst,zfinal) pairs (zoom or target)
     note that jobs that do not contain the 'alma' station are dropped
     from the list of jobs to process (i.e. almaline == '').  These
     lists are thus ordered by the new set of jobs to process.
@@ -471,6 +472,7 @@ def commonInputGrokkage(o):
     o.remote_map = []
     o.zoomfreqs  = []
     o.targfreqs  = []
+    o.zffs = list()
     o.mfreqset   = set()
     # things in the frequency table
     zoom_re = re.compile(r'^ZOOM.FREQ.INDEX.\d+:\s*(\d+)')
@@ -590,6 +592,7 @@ def useTheUserIFlist(o):
     The actual work is in the input template, so here we just check.
     Return True if user list was provided.
     '''
+    if o.verb: print('useTheUserIFlist %s "%s"'%(str(o.ozlogic),str(o.iflist)))
     if o.ozlogic: return False
     if o.iflist == '': return False
     o.zlist = o.iflist.split(',')
@@ -599,7 +602,7 @@ def useTheUserIFlist(o):
     if o.verb: print('zlist is',o.zlist)
     return True
 
-def getFirstFinal(ofreqs):
+def getFirstFinal(ofreqs, o):
     '''
     Helper for deduceOutputBands() and deduceZoomIndices() to
     find first and final from the list of sets of indices.
@@ -612,6 +615,8 @@ def getFirstFinal(ofreqs):
         szmf = sorted(list(zmf))
         sfir = int(szmf[0])
         sfin = int(szmf[-1])
+        # per job zoom or target freq id min/max pair
+        o.zffs.append((sfir,sfin))
         if sfir < first: first = sfir
         if sfin > final: final = sfin
     if first == 100000 or final == -2:
@@ -627,8 +632,10 @@ def deduceOutputBands(o):
     ## FIXME-later: create per-job first and final or lists
     Return True if TARGET FREQs were found.
     '''
+    if o.verb: print('deduceOutputBands',o.ozlogic)
     if o.ozlogic: return False
-    o.zfirst,o.zfinal = getFirstFinal(o.targfreqs)
+    o.zfirst,o.zfinal = getFirstFinal(o.targfreqs, o)
+    if o.verb: print('getFirstFinal',o.zfirst,o.zfinal)
     if o.zfirst == -1: return False
     # flatten the list of target freqs and remove duplicates
     freqIds = itertools.chain(*o.targfreqs)
@@ -646,8 +653,10 @@ def deduceZoomIndices(o):
     ### FIXME-later: create per-job first and final or lists
     Return True if ZOOM bands provided what we need.
     '''
+    if o.verb: print('deduceZoomIndices',o.ozlogic)
     if o.ozlogic: return False
-    o.zfirst,o.zfinal = getFirstFinal(o.zoomfreqs)
+    o.zfirst,o.zfinal = getFirstFinal(o.zoomfreqs, o)
+    if o.verb: print('getFirstFinal',o.zfirst,o.zfinal)
     if o.zfirst == -1: return False
     return True
 
@@ -731,6 +740,7 @@ def oldDeduceZoomIndices(o):
         cfrq.sort()
         zfirst.add(zfir)
         zfinal.add(zfin)
+        o.zffs.append((zfir,zfin))
         mfqlst.add(cfrq[len(cfrq)//2])
     o.nargs = newargs
     # o.jobnums is also synchronized
@@ -739,6 +749,7 @@ def oldDeduceZoomIndices(o):
     # and we resync o.djobs here
     o.djobs = str(list(map(str,o.jobnums)))
     if o.verb: print('jobs now "%s"'%o.djobs)
+    if o.verb: print('zffs now',o.zffs)
     if len(zfirst) != 1 or len(zfinal) != 1:
         if o.zmchk:
             raise Exception('Encountered ambiguities in zoom freq ranges: ' +
@@ -800,6 +811,7 @@ def plotPrepList(o):
     plots(adjusted) is more than 1, then sub-sample the list for the
     set to plot.
     '''
+    if o.verb: print('plotPrepList', o.zlist)
     zlen = len(o.zlist)
     if o.fringe > zlen:
         o.fringe = zlen
@@ -808,6 +820,8 @@ def plotPrepList(o):
         o.doPlot = ['','#','#','']
         o.flist = ','.join(
             [str(o.zlist[(i*zlen)//o.fringe]) for i in range(o.fringe)])
+    # o.flist is indices into doIF
+    if o.verb: print('flist is',o.flist)
 
 def plotPrepOrig(o):
     '''
@@ -815,6 +829,7 @@ def plotPrepOrig(o):
     o.doPlot, o.remote and o.flist for the first/final case.
     '''
     # handle the case of a continuous, common list for all jobs
+    if o.verb: print('plotPrepOrig', o.zfirst,o.zfinal)
     if o.fringe > o.zfinal+1-o.zfirst:
         o.fringe = o.zfinal+1-o.zfirst
         print('Reduced number of fringe plot channels to %d' % o.fringe)
@@ -823,6 +838,8 @@ def plotPrepOrig(o):
         o.flist = '0'                   # first entry
         for ii in range(1,o.fringe):    # and the rest
             o.flist += ',(%d*len(doIF)//%d)' % (ii, o.fringe)
+    # o.flist is indices into doIF
+    if o.verb: print('flist',o.flist)
 
 def plotPrep(o):
     '''
@@ -1046,7 +1063,10 @@ def createCasaInputParallel(o):
     to the createCasaInput() input case except we must first create
     a working directory of the appropriate name before creating the
     script file.  The working directory (in the other case) was
-    created in runpolconvert after the execution.
+    created in runpolconvert after the execution.  Since the casa input
+    and output files contain debug messages, we go to the extra step
+    of resetting all the o. variables to what actually pertains to the
+    job at hand.  (Otherwise the debugging messages are too confusing.)
     '''
     if o.verb: print('Creating CASA work dirs and input files ' + o.input)
     o.workdirs = {}
@@ -1072,16 +1092,19 @@ def createCasaInputParallel(o):
     o.remotelist = []
     o.nargs = []
     del(o.remote_map)
+    o.zfirstglobal = o.zfirst
+    o.zfinalglobal = o.zfinal
+    zffs = o.zffs
     if o.verb:
         print('  input array lengths', ','.join([str(len(x)) for x in
             [jnums, remotelist, amapdicts, zoomfreqs, targfreqs,
-                nargs, jnums, djays, rname]]), 'djays',djays)
+                nargs, jnums, djays, rname, zffs]]), 'djays',djays)
     # pull the per-job info from the lists so that the debugging template
     # output invoked for createCasaInput() doesn't contain confusing crap.
-    for job,rem,ad,zf,tf,na,jn,dj,rn in map(
-        lambda x,y,z,u,v,w,s,r,q:(x,y,z,u,v,w,s,r,q),
+    for job,rem,ad,zf,tf,na,jn,dj,rn,ff in map(
+        lambda x,y,z,u,v,w,s,r,q,f:(x,y,z,u,v,w,s,r,q,f),
         jnums, remotelist, amapdicts, zoomfreqs, targfreqs,
-        nargs, jnums, djays, rname):
+        nargs, jnums, djays, rname, zffs):
         savename = o.exp + '_' + job
         workdir = o.now.strftime(savename + '.polconvert-%Y-%m-%dT%H.%M.%S')
         os.mkdir(workdir)
@@ -1094,6 +1117,8 @@ def createCasaInputParallel(o):
         o.jobnums = jn
         o.djobs = dj
         o.remotename = rn
+        o.zfirst,o.zfinal = ff
+        o.zffs = ff
         if createCasaInput(o, odjobs, '..', workdir):
             cmdfile,fullpath = createCasaCommand(o, job, workdir)
             if cmdfile == 'error':
@@ -1288,14 +1313,15 @@ if __name__ == '__main__':
         runPrePolconvert(opts)
     # this is somewhat "temporary"
     if opts.iflist == 'original':
-        print('Original zoom logic requested')
+        print('Original zoom logic requested -- iflist ignored')
         opts.iflist = ''
         opts.ozlogic = True
     else:
-        print('Using user specified iflist',opts.iflist)
+        print('Using user specified iflist "',opts.iflist,'" if any')
         opts.ozlogic = False
     # various work in preparation for job creation and execution
     commonInputGrokkage(opts)
+    print('CommonInputGrokkage done')
     if useTheUserIFlist(opts):
         print('Proceeding with the User-provide list')
     elif deduceOutputBands(opts):
@@ -1305,6 +1331,7 @@ if __name__ == '__main__':
     else:
         print('Proceeding with the original zoom logic')
         oldDeduceZoomIndices(opts)     # original derived from ZOOMs
+    print('Zoom/Output Band deductions done')
     plotPrep(opts)
     # run the jobs in parallel
     if opts.verb:
