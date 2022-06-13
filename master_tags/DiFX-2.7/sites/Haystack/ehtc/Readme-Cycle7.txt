@@ -13,6 +13,9 @@
 #  p${iter}         refers to the polconvert iteration
 #  r${relv}         refers to the release name
 #
+# For tracking purposes, make a link in the correlation area to this new
+# polconvert directory so that work can be captured in a few areas.
+#
 # If there are MULTIPLE PROJECTS with SEPARATE QA2 DELIVERABLES for
 # each, you will need to manage the sets of QA2 calibrations using
 # QA2_proj logic variables.  I.e. you will have 2 or more passes of
@@ -33,8 +36,8 @@
 # setup versioned tools -- very different per site
 # script that adds CASA 4.7.2 bin to PATH
 source ~/lib/casa.setup
-#source /swc/difx/setup-DiFX-2.7.1.bash     # 2021 production
-source /swc/difx/setup-DiFX-2.7.bash        # 2021 test
+source /swc/difx/setup-DiFX-2.7.1.bash      # 2021 production
+#source /swc/difx/setup-DiFX-2.7.bash       # 2021 test
 #source /swc/difx/setup-DiFX-2.6.2.bash     # 2017,2018
 #source /swc/difx/setup-DiFX-2.6.3.bash     # testing
 #source /swc/difx/setup-DiFX-2.7.bash       # 2021 target
@@ -49,7 +52,8 @@ export hays=/data-sc25/EHT_ARCHIVE/Hays_Output3
 export bonn=/data-sc25/EHT_ARCHIVE/Bonn_Output3
 #xport dsvn=/swc/difx/difx-svn
 #export dsvn=/swc/difx/difx-svn/master_tags/DiFX-2.6.2
-export dsvn=/swc/difx/difx-svn/master_tags/DiFX-2.7
+#export dsvn=/swc/difx/difx-svn/master_tags/DiFX-2.7
+export dsvn=/swc/difx/difx-svn/master_tags/DiFX-2.7.1
 # site vars: script area, correlator work dir and release directory
 #export ehtc=$dsvn/sites/Haystack/ehtc
 #export ehtc=/swc/scripts/ehtc
@@ -80,8 +84,9 @@ export dpfu=0.0308574   # band6
 export spw=$((${subv/b/} - 1))
 
 # a list of stations in best order for polconvert plots
-#xport scmp='PV,MG,SW,AX,LM,SZ,GL,MM'
-export scmp='MM,PV,MG,SZ,GL,AX,SW,LM,KT,NN'
+#export scmp='PV,MG,SW,AX,LM,SZ,GL,MM'
+#export scmp='MM,PV,MG,SZ,GL,AX,SW,LM,KT,NN'
+export scmp='KT,MM,PV,MG,SZ,GL,AX,SW,LM,NN'
 # number of parallel grinds to schedule (< number physical cores)
 export npar=15
 # number of polconvert fringe plots to make
@@ -327,7 +332,8 @@ grep ^if.station $ers.conf | sort | uniq -c
 # reached...this is generally not a problem.
 #...
 ### are all manual phases set up plausibly?  tell us what you think.
-for r in $roots ; do fourfit -bA? -c $ers.conf $r & done ; wait
+for r in $roots ; do fourfit -bA? -c $ers.conf $r & done
+# wait
 fplot */A[^A].B*
 ### first-root
 ### SNR LL  RR  LR  RL  scan-name
