@@ -129,8 +129,9 @@ def parseOptions():
     develop.add_argument('-x', '--xyadd', dest='xyadd',
         default='', metavar='STRING',
         help='user supplied per station XY angle adjustment dict, e.g. '
-        ' "Xx:0.0, ..."  (empty by default).  Normally 180.0 or 0.0 are '
-        ' the values you might need to supply ')
+        ' "XX":0.0, ...  (empty by default) where XX is a linearly '
+        ' polarized antenna.  Normally "AA":180.0 or "AA":0.0 are '
+        ' the values you might need to supply for the antenna AA. ')
     develop.add_argument('-E', '--avgtime', dest='avgtime',
         default=0.0, metavar='FLOAT', type=float,
         help='If >0 this will time-average the gains to reduce noise')
