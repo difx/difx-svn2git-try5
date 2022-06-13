@@ -16,11 +16,11 @@
 //===========================================================================
 // SVN properties (DO NOT CHANGE)
 //
-// $Id$
+// $Id: Mark6.cpp 9376 2019-12-18 17:54:06Z MarkWainright $
 // $HeadURL: $
-// $LastChangedRevision$
-// $Author$
-// $LastChangedDate$
+// $LastChangedRevision: 9376 $
+// $Author: MarkWainright $
+// $LastChangedDate: 2019-12-18 18:54:06 +0100 (Wed, 18 Dec 2019) $
 //
 //============================================================================
 #include <poll.h>
@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <cstring>
 #include <string>
@@ -37,10 +38,12 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <difxmessage.h>
+#include <set>
 
 #include "Mark6.h"
 #include "Mark6DiskDevice.h"
 #include "Mark6Meta.h"
+#include "Mark6Controller.h"
 #include <sys/mount.h>
 
 using namespace std;
@@ -50,8 +53,6 @@ using namespace std;
  */
 Mark6::Mark6(void)
 {
-    clog << "mark6 started" << endl;
-    
     //set defaults 
     mountRootData_m = "/mnt/disks/";               
     mountRootMeta_m =  mountRootData_m + ".meta/";
@@ -77,7 +78,7 @@ Mark6::Mark6(void)
             throw Mark6Exception (string("Cannot create new udev object.") );
     }
     mon = udev_monitor_new_from_netlink(udev_m, "udev");
-    udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
+    //udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
     udev_monitor_enable_receiving(mon);
 
     // Get the file descriptor (fd) for the monitor. This fd will get passed to select() 
@@ -89,10 +90,36 @@ Mark6::Mark6(void)
     // remove any remaining mounts
     cleanUp();
 
-    if (enumerateDevices() > 0)
+    // identify SAS controllers
+    int numControllerDetect = enumerateControllers();
+
+    // look for controller config in /etc/default
+    int numControllerConf = readControllerConfig();
+    if (numControllerConf == -1)
+    {
+        writeControllerConfig();
+    }
+
+    if (numControllerDetect == 0)
+        throw Mark6Exception (string("Did not find any SAS controllers. Is this a mark6?") );
+    else if (numControllerDetect < numControllerConf) 
+        throw Mark6Exception (string("Detected ") );
+
+
+    for(std::size_t i = 0; i < controllers_m.size(); ++i) {
+        clog << controllers_m[i].getName() << " " << controllers_m[i].getOrder() << endl;
+    }
+
+    //if (enumerateControllers() > 0)
+    //{
+    //}
+
+    //enumerateDevices();
+
+   /* if (enumerateDevices() > 0)
     {
 	manageDeviceChange();
-    } 
+    } */
 }
 
 /**
@@ -294,8 +321,6 @@ void Mark6::manageDeviceChange()
                 //cout << "mount failed " << tempDevices[i].getPartitions()[0].deviceName << " " << tempDevices[i].getPartitions()[1].deviceName << " will try again" << endl;
                 newDevices_m.push_back(tempDevices[i]);
             }
-            
-            
         }  
     }
     
@@ -307,6 +332,7 @@ void Mark6::manageDeviceChange()
         // loop over all removed devices
         for(std::vector<Mark6DiskDevice>::size_type i = 0; i != tempRemoveDevices.size(); i++) {
                        
+	    cout << "Removing device: " << tempRemoveDevices[i].getName() << endl;
             if ((disk = getMountedDevice(tempRemoveDevices[i].getName())) != NULL)
             {
                 // get the module slot           
@@ -317,11 +343,11 @@ void Mark6::manageDeviceChange()
                                 
                 if (disk->isMounted() == false)
                 {
-                    //cout << " now is unmounted " << endl;    
+                    cout << " now is unmounted " << endl;    
                       
                     // remove disk from the vector of mounted devices
                     removeMountedDevice(tempRemoveDevices[i]);
-                    //cout << "Removed: " << tempRemoveDevices[i].getName() << " in slot: " << slot << endl;
+                    cout << "Removed: " << tempRemoveDevices[i].getName() << " in slot: " << slot << endl;
                             
                     if (slot != -1)
                         modules_m[slot].removeDiskDevice(tempRemoveDevices[i]);
@@ -332,7 +358,7 @@ void Mark6::manageDeviceChange()
                 {
                     // something didn't work try again on the next go
                     removedDevices_m.push_back( tempRemoveDevices[i]);
-                    //cout << " now is still mounted ";
+                    cout << " now is still mounted ";
                 }
             }    
             
@@ -497,7 +523,7 @@ void Mark6::pollDevices()
                cout << udev_device_get_subsystem(dev) << ",";
                cout << udev_device_get_devtype(dev) << ",";
                 cout << endl;
-/*
+
                cout << " devpath="<< udev_device_get_devpath(dev) << endl;
                cout << " syspath="<< udev_device_get_syspath(dev) << endl;
                cout << " sysname="<< udev_device_get_sysname(dev) << endl;
@@ -505,7 +531,7 @@ void Mark6::pollDevices()
                cout << " devnum="<< udev_device_get_devnum(dev) << endl;
                 //cout << " range="<< udev_device_get_sysattr_value(dev,"range")<< endl;
 
-               udev_device  *parent = udev_device_get_parent(dev);
+               /*udev_device  *parent = udev_device_get_parent(dev);
                 cout << "parent ";
                 
                 
@@ -536,9 +562,9 @@ void Mark6::pollDevices()
                             newDevices_m.push_back(disk);
                             changeCount++;
 			}
-                        //cout << "Controller ID=" << disk.getControllerId() << endl;
-                        //cout << "Disk ID=" << disk.getDiskId() << endl;
-                        //cout << "Disk serial=" << disk.getSerial() << endl;
+                        cout << "Controller ID=" << disk.getControllerId() << endl;
+                        cout << "Disk ID=" << disk.getDiskId() << endl;
+                        cout << "Disk serial=" << disk.getSerial() << endl;
                     }
                     else if (devtype == "partition")
                     {   
@@ -591,11 +617,148 @@ void Mark6::pollDevices()
                     //modules_m[iSlot].isComplete();
                     //cout << "Slot " << iSlot << " = " << modules_m[iSlot].getEMSN() << " (" << modules_m[iSlot].getNumDiskDevices() << " disks) " << modules_m[iSlot].isComplete() << endl;
                     cout << "Slot " << iSlot+1 << " = " << modules_m[iSlot].getEMSN() << " (" << modules_m[iSlot].getNumDiskDevices() << " disks) " << endl;
+		    if (modules_m[iSlot].getNumDiskDevices() > 0)
+		    {
+			//if (modules_m[iSlot].diskDevices_m.empty()) { continue; }
+			map<int, string> serials = modules_m[iSlot].getDiskDevice(0)->getMeta().getSerials();
+			// loop over all serials found in the meta data
+			map<int, string>::iterator it;
+			for ( it = serials.begin(); it != serials.end(); it++ )
+			{
+			   cout << "matching " << it->first << " " << it->second << endl;
+			}
+		    }
                 }
+
                 cout << endl;
     }
 
 
+void Mark6::writeControllerConfig()
+{
+    struct stat st;
+    bool host0 = false;
+    
+    // If /etc/default does not exist create it
+    if (stat("/etc/default", &st) == -1) {
+        mkdir("/etc/default", 0700);
+    }
+
+    // sort controller name alphabetically
+    std::set<std::string> sorted;
+    for(std::size_t i = 0; i < controllers_m.size(); ++i) {
+        // for compatibility always place host0 on index 1 so that it will mount under slots 3 and 4
+        if (controllers_m[i].getName() == "host0")
+        {
+            host0 = true; 
+            continue;
+        }
+        sorted.insert(controllers_m[i].getName());
+    }
+
+    ofstream conf ("/etc/default/mark6_slots");
+
+    conf << "# mark6 SAS controller configuration." << endl;
+    conf << "# each line contains the name of a SAS controller present in the system" << endl;
+    conf << "# the order determines the mount location (first line will mount slots 1&2, second line slots 3&4 etc.)" << endl;
+    conf << "# adapt the order to match the local cabling" << endl;
+    
+
+    for( std::set<std::string>::iterator it = sorted.begin(); it != sorted.end(); ++it )
+    {
+        if ((distance(sorted.begin(), it) == 1) && host0)
+        {
+          conf << "host0" << endl;
+        } 
+        conf << *it << endl;
+    }
+
+    conf.close();
+
+    
+}
+
+
+int Mark6::readControllerConfig()
+{
+    std::string line;
+    int count = 0;
+
+    // check for controller config
+    ifstream conf ("/etc/default/mark6_slots");
+    if (conf.is_open())
+    {
+        clog << "opened /etc/default/mark6_slots" << endl;
+        while ( getline (conf,line) )
+        {
+            if (line.rfind("#", 0) == 0) 
+                continue;
+            for(std::size_t i = 0; i < controllers_m.size(); ++i) {
+                if (line.rfind(controllers_m[i].getName(), 0) == 0) 
+                {
+                    controllers_m[i].setOrder(count);
+                    break;
+                }
+            }
+            count++;
+        }
+        conf.close();
+    }
+    else
+        // write config 
+        writeControllerConfig();
+
+    return(count);
+}
+
+/**
+ * Uses udev to determine the number and names of the SAS controllers installed in the system
+ *
+ * @returns the number of SAS controllers identified in the system
+ * */
+
+int Mark6::enumerateControllers()
+{
+struct udev_enumerate *enumerate;
+    struct udev_list_entry *devices, *dev_list_entry;
+    struct udev_device *dev;
+
+    // obtain the list of currently present block devices
+    
+    clog << "enumerateControllers" << endl;
+    
+    enumerate = udev_enumerate_new(udev_m);
+    udev_enumerate_add_match_subsystem(enumerate, "sas_host");
+    udev_enumerate_scan_devices(enumerate);
+    devices = udev_enumerate_get_list_entry(enumerate);
+
+    // loop over list of currently present block devices
+    udev_list_entry_foreach(dev_list_entry, devices)
+    {
+        const char *path;
+
+        path = udev_list_entry_get_name(dev_list_entry);
+        dev = udev_device_new_from_syspath(udev_m, path);
+/*        cout << udev_device_get_sysname(dev) <<  " " << path << " " << udev_device_get_devpath(dev) << endl;
+        cout << udev_device_get_subsystem(dev) << endl;
+        cout << udev_device_get_sysnum(dev) << endl;
+        cout << udev_device_get_devnum(dev) << endl;
+        cout << udev_device_get_seqnum(dev) << endl;
+*/
+        Mark6Controller controller;
+        controller.setName(udev_device_get_sysname(dev));
+        controller.setPath(udev_device_get_devpath(dev));
+        controller.setSysNum(udev_device_get_sysnum(dev));
+
+        clog << " found SAS controller: " << controller.getName() << " " << controller.getPath() << endl;
+
+        controllers_m.push_back(controller);
+    }
+
+    udev_enumerate_unref(enumerate);
+
+    return(controllers_m.size());
+}
 
 int Mark6::enumerateDevices()
 {
@@ -609,7 +772,7 @@ int Mark6::enumerateDevices()
     clog << "enumerateDevices" << endl;
 
     enumerate = udev_enumerate_new(udev_m);
-    udev_enumerate_add_match_subsystem(enumerate, "block");
+    udev_enumerate_add_match_subsystem(enumerate, "sas_host");
     udev_enumerate_scan_devices(enumerate);
     devices = udev_enumerate_get_list_entry(enumerate);
     
@@ -620,14 +783,20 @@ int Mark6::enumerateDevices()
         
         path = udev_list_entry_get_name(dev_list_entry);
         dev = udev_device_new_from_syspath(udev_m, path);
+        cout << udev_device_get_sysname(dev) <<  " " << path<< endl;
+}
         
-        if(!dev)
+  /*      if(!dev)
         {
             // error receiving device, skip it
             continue;
         }
-	udev_device  *parent = udev_device_get_parent(dev);
+        cout << "hallo" << endl;
+
         string devtype(udev_device_get_devtype(dev));
+	cout << devtype << path <<endl;
+        
+	udev_device  *parent = udev_device_get_parent(dev);
 
 	if (devtype =="disk")
 	{
@@ -639,7 +808,7 @@ int Mark6::enumerateDevices()
 			const char *serial = udev_device_get_property_value(dev,"ID_SERIAL_SHORT");
 	
 			if (sysname != NULL)
-			{
+			 
 				string devName = string(sysname);                               
 				Mark6DiskDevice disk(devName);
 
@@ -652,8 +821,6 @@ int Mark6::enumerateDevices()
 					disk.setSerial(string(serial));
 							       
 				//cout << "device " << devName << " serial " << serial <<endl;
-				//cout << "device " << devName << " serial " << serial << " devpath " << devpath << " sasadress " << sasaddress << endl;
-                // mark6-03: device sdb serial ZA28RWSE devpath /devices/pci0000:00/0000:00:03.0/0000:01:00.0/0000:02:08.0/0000:04:00.0/host0/port-0:0/end_device-0:0/target0:0:0/0:0:0:0/block/sdb sasadress 0x4433221108000000
 				newDevices_m.push_back(disk);			
 				devCount++;
 				//cout << "Controller ID=" << disk.getControllerId() << endl;
@@ -674,6 +841,7 @@ int Mark6::enumerateDevices()
 		}
 	    }
 	}
+*/
     
     udev_enumerate_unref(enumerate);
 
@@ -709,24 +877,29 @@ long Mark6::parseDiskId(std::string sasAddress)
  */
 int Mark6::parseControllerId(string devpath)
 {
-    //cout << "devpath=" << devpath << endl;
-    size_t found;
-
-    found = devpath.find("host");
+    cout << "devpath=" << devpath << endl;
+    
+    size_t end;
+    size_t found = devpath.find("host");
     if (found != string::npos)
     {
-        found = devpath.find("host0");
-        if (found != string::npos)
-            return(0);
+        end = devpath.find("/", found);
+        if (end != string::npos)
+        {
+            string num = devpath.substr(found+4, end-found-4);
+        //    cout << "extracted controllerId=" <<  num << endl;
+            return(atoi( num.c_str()));
+        }
+    }
 
-        // any other host will receiver controllerId 1
-        found = devpath.find("host");
-        if (found != string::npos)
-            return(1);
-    }
-    else
-    {
-        cout << "TODO: parse PCI devpath(?) " << devpath << endl;
-    }
+    /*size_t found = devpath.find("host0");
+    if (found != string::npos)
+        return(0);
+    
+    // any other host will receiver controllerId 1
+    found = devpath.find("host");
+    if (found != string::npos)
+        return(1);
+   */ 
     return(-1);
 }
