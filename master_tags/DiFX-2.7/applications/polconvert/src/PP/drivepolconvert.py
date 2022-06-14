@@ -60,6 +60,9 @@ def parseOptions():
     epi += 'written to disk, '
     epi += 'but all of the diagnostic plots are made and saved. '
     epi += 'This is useful to manually tweak things prior to committing. '
+    epi += 'The unconverted *.difx dir is saved as *.save until polconvert'
+    epi += 'completes successfully--at which time it is removed.  You can'
+    epi += 'keep it by setting keepdifxout=True in your environment'
     use = '%(prog)s [options] [input_file [...]]\n  Version'
     parser = argparse.ArgumentParser(epilog=epi, description=des, usage=use)
     primary = parser.add_argument_group('Primary Options')
@@ -83,6 +86,10 @@ def parseOptions():
         help='table naming scheme: v{0..11} are for QA2 tables, or '
             's{0...} for non-QA2 cases.  Use "help" for details.')
     # not normally needed, secondary arguments
+    secondy.add_argument('-Y', '--XYtable', dest='XYtable',
+        default='XY0.APP', metavar='STRING',
+        help='Normally the XY phase is captured in ...XY0.APP, but '
+        'if an alternate table is needed, you can use, e.g. XY0kcrs.APP')
     secondy.add_argument('-P', '--parallel', dest='parallel',
         default=6, metavar='INT', type=int,
         help='Number of jobs to run in parallel. '
@@ -90,7 +97,18 @@ def parseOptions():
     secondy.add_argument('-p', '--prep', dest='prep',
         default=False, action='store_true',
         help='run prepolconvert.py on the same joblist--'
-        'generally not a good idea unless you are certain it will work')
+        'generally not a good idea unless you are certain it will work '
+        ' and the -D option is required to specify a source')
+    secondy.add_argument('-k', '--nuke', dest='nuke',
+        default=False, action='store_true',
+        help='used with the -p argument to nuke the input files '
+        'if they are present; this is only sensible if working '
+        'outside of the original correlation directory (which is '
+        'recommended')
+    secondy.add_argument('-D', '--data', dest='data',
+        default='', metavar='DIR',
+        help='the source data directory for the -p option: '
+        '-D "dir" is equivalent to prepolconvert -s "dir" ...')
     secondy.add_argument('-a', '--ant', dest='ant',
         default=1, metavar='INT', type=int,
         help='1-based index of linear (ALMA) antenna (normally 1)')
@@ -221,6 +239,9 @@ def tableSchemeHelp():
 
     The second scheme assumes an initial reduction with <TBD.py>.
 
+    If an alternate table for the XY0 phase is suggested, you can change
+    the name with -Y; e.g. XY0.APP to XY0kcrs.APP
+
     Finally an environment variable QA2TABLES may be set to a comma-sep
     list of compete table names (ignoring label, concatenated and calibrated)
     may be used for any arbitrary set of tables.
@@ -238,53 +259,61 @@ def calibrationChecks(o):
     ### label processing
     if o.label == '':
         raise Exception('A label (-l) is required to proceed')
-    if o.verb: print('Using label %s' % o.label)
+    if o.verb: print('Using label %s' % o.label, 'cal table set', o.qa2)
     o.constXYadd = 'False'
     o.conlabel = o.label
     o.callabel = o.label
+    tbwarn=False
     ### developmental
     if o.qa2 == 'v0':   # original 1mm names
         o.qal = ['antenna.tab','calappphase.tab', 'NONE', 'bandpass-zphs.cal',
                'ampgains.cal.fluxscale', 'phasegains.cal', 'XY0amb-tcon']
+        tbwarn = True
     elif o.qa2 == 'v1': # revised 3mm names
         o.qal = ['ANTENNA', 'calappphase', 'NONE', 'bandpass-zphs',
                'flux_inf', 'phase_int.APP', 'XY0.APP' ]
+        tbwarn = True
     elif o.qa2 == 'v2': # revised 3mm names with Dterms (default)
         o.qal = ['ANTENNA', 'calappphase', 'Df0', 'bandpass-zphs',
                'flux_inf', 'phase_int.APP', 'XY0.APP' ]
+        tbwarn = True
     elif o.qa2 == 'v3': # revised 3mm names with Dterms, constant XYadd
         o.constXYadd = 'True'
         o.qal = ['ANTENNA', 'calappphase', 'Df0', 'bandpass-zphs',
                'flux_inf', 'phase_int.APP', 'XY0.APP' ]
+        tbwarn = True
     ### production default
     elif o.qa2 == 'v4' or o.qa2 == 'v8': # v3+D-APP/G-APP
         o.qal = ['ANTENNA', 'calappphase', 'Df0.APP', 'bandpass-zphs',
-               'flux_inf.APP', 'phase_int.APP', 'XY0.APP', 'Gxyamp.APP' ]
+               'flux_inf.APP', 'phase_int.APP', o.XYtable, 'Gxyamp.APP' ]
         o.conlabel = o.label + '.concatenated.ms'
         o.callabel = o.label + '.calibrated.ms'
         if o.qa2 == 'v8': o.qal[5] += '.XYsmooth'
     ### or other desperation plans
     elif o.qa2 == 'v5' or o.qa2 == 'v9': # v3+D-ALMA/G-ALMA
         o.qal = ['ANTENNA', 'calappphase', 'Df0.ALMA', 'bandpass-zphs',
-               'flux_inf.APP', 'phase_int.APP', 'XY0.APP', 'Gxyamp.ALMA' ]
+               'flux_inf.APP', 'phase_int.APP', o.XYtable, 'Gxyamp.ALMA' ]
         o.conlabel = o.label + '.concatenated.ms'
         o.callabel = o.label + '.calibrated.ms'
         if o.qa2 == 'v9': o.qal[5] += '.XYsmooth'
     elif o.qa2 == 'v6' or o.qa2 == 'v10': # v3+D-ALMA/G-APP
         o.qal = ['ANTENNA', 'calappphase', 'Df0.ALMA', 'bandpass-zphs',
-               'flux_inf.APP', 'phase_int.APP', 'XY0.APP', 'Gxyamp.APP' ]
+               'flux_inf.APP', 'phase_int.APP', o.XYtable, 'Gxyamp.APP' ]
         o.conlabel = o.label + '.concatenated.ms'
         o.callabel = o.label + '.calibrated.ms'
         if o.qa2 == 'v10': o.qal[5] += '.XYsmooth'
     elif o.qa2 == 'v7' or o.qa2 == 'v11': # v3+D-APP/G-ALMA
         o.qal = ['ANTENNA', 'calappphase', 'Df0.APP', 'bandpass-zphs',
-               'flux_inf.APP', 'phase_int.APP', 'XY0.APP', 'Gxyamp.ALMA' ]
+               'flux_inf.APP', 'phase_int.APP', o.XYtable, 'Gxyamp.ALMA' ]
         o.conlabel = o.label + '.concatenated.ms'
         o.callabel = o.label + '.calibrated.ms'
         if o.qa2 == 'v11': o.qal[5] += '.XYsmooth'
     ### if push comes to shove
     else:               # supply via environment variable
         o.qal = os.environ['QA2TABLES'].split(',')
+    if tbwarn:
+        print('\n\n ***You have selected an obsolete set of tables')
+        print('Will proceed--but you had better known what you are doing.\n')
     if len(o.qal) < 7:
         raise Exception('at least 7 QA2 tables are required, see --qa2 option')
     keys = ['a', 'c', 'd', 'b', 'g', 'p', 'x', 'y']
@@ -390,18 +419,48 @@ def checkOptions(o):
     inputRelatedChecks(o)
     runRelatedChecks(o)
 
+def checkExisting(o):
+    '''
+    Refuse to run if any of input, calc, flag, im, difx or save are present'
+    '''
+    suffile = ['input', 'calc', 'flag', 'im' ]
+    suffdir = ['difx', 'save' ]
+    oops = []
+    for ii in o.nargs:
+        base = ii[:-6]
+        for s in suffile:
+            fd = base + '.' + s
+            if o.verb: print('checking',fd)
+            if os.path.exists(fd): oops.append(fd)
+        for s in suffdir:
+            fd = base + '.' + s
+            if o.verb: print('checking',fd)
+            if os.path.exists(fd): oops.append(fd)
+    if len(oops) == 0: return
+    print('Found several files that would be overwritten:')
+    for fd in oops:
+        print('  ',fd)
+    raise Exception('Stopping since -k is not set')
+
 def runPrePolconvert(o):
     '''
     Run prepolconvert using the supplied jobs.
     '''
     cmd = 'prepolconvert.py'
+    print('\nRunning', cmd, 'on', o.nargs)
     if o.verb: cmd += ' -v'
+    if o.nuke: cmd += ' -k'
+    else: checkExisting(o)
+    if o.data: cmd += ' -s "%s"' % o.data
+    else: raise Exception('The -D option is required with -p')
+    # ok, actually run the command
     for ii in o.nargs: cmd += ' ' + ii
     cmd += ' > prepol.log 2>&1'
     if o.verb:
-        print('Running ' + cmd)
+        print('\nRunning ' + cmd + '\n')
     if os.system(cmd):
         raise Exception('Error while running prepolconvert, see prepol.log')
+    print('Files imported; see prepol.log\n')
 
 def updatePlotAntMaps(o, antmap):
     '''

@@ -127,6 +127,8 @@ export fitsname=false
 # which implicitly sets the -u flag on any use of $ehtc/ehtc-joblist.py.
 # If $work is more messed up than that, you're on your own for coping.
 export uniq=true    # or export uniq=false
+# if you want to preserve the original *difx -> *save behavior
+# export keepdifxout=True
 
 # other derived vars
 export release=$arch/$exp/$exp-$relv
@@ -169,6 +171,9 @@ false && { # ONE TIME SETUP
 [ -d $release ] || mkdir -p $release
 pwd ; cd $work/$exp/v${vers}${ctry}p${iter}/$subv${stry} ; pwd
 ls -l $exp-$subv-v${vers}${ctry}${stry}p${iter}r${relv}.logfile
+obsband=`grep '^### Instructions' *.logfile | sed 's/.*for[ ]*//'`
+[ "$obsband" = $exp/$subv ] || {
+    echo title of file is "$obsband" not $exp/$subv ; }
 
 # once per trak, not per band, set up for polconvert data
 # from the mirror after consultation with the other correlator
@@ -299,8 +304,9 @@ jobs=`echo $exp-$vers-${subv}_{,}.input` ; echo $jobs
 # REMINDER: for multi-project tracks you will need to update
 # $opts and $pcal using the QA_* logic variables above.
 # --override-version  on difx2mark4 should not be necessary
-prepolconvert.py -v -k -s $dout $jobs
-drivepolconvert.py -v $opts -l $pcal $jobs
+# prepolconvert.py -v -k -s $dout $jobs
+# drivepolconvert.py -v $opts -l $pcal $jobs
+drivepolconvert.py -v -p -k -D $dout $opts -l $pcal $jobs
 for j in $jobs ;\
 do difx2mark4 -e $expn -s $exp.codes --override-version ${j/input/difx} ; done
 
@@ -326,6 +332,8 @@ $ehtc/est_manual_phases.py -c $ers.conf -v \
     -r second-root -s A,p,q,r,...
 grep ^if.station $ers.conf | sort | uniq -c
 # ... iterate with additional roots as you find you need them
+# you should note whether all steps were completed; this is not
+# necessarily a problem, but you may want to choose better scans.
 #
 # The -v option turns on some progress so that you monitor progress.
 # It will declare some steps not done if full convergence is not
@@ -336,10 +344,10 @@ for r in $roots ; do fourfit -bA? -c $ers.conf $r & done
 # wait
 fplot */A[^A].B*
 ### first-root
-### SNR LL  RR  LR  RL  scan-name
+### SNR LL  RR  LR  RL
 ### ...
 ### second-root
-### SNR LL  RR  LR  RL  scan-name
+### SNR LL  RR  LR  RL
 ### ...
 
 #
