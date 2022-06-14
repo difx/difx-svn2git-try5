@@ -78,7 +78,7 @@ Mark6::Mark6(void)
             throw Mark6Exception (string("Cannot create new udev object.") );
     }
     mon = udev_monitor_new_from_netlink(udev_m, "udev");
-    //udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
+    udev_monitor_filter_add_match_subsystem_devtype(mon, "block", NULL);
     udev_monitor_enable_receiving(mon);
 
     // Get the file descriptor (fd) for the monitor. This fd will get passed to select() 
@@ -97,7 +97,9 @@ Mark6::Mark6(void)
     int numControllerConf = readControllerConfig();
     if (numControllerConf == -1)
     {
+        // write the config
         writeControllerConfig();
+        numControllerConf = readControllerConfig();
     }
 
     if (numControllerDetect == 0)
@@ -106,9 +108,9 @@ Mark6::Mark6(void)
         throw Mark6Exception (string("Detected ") );
 
 
-    for(std::size_t i = 0; i < controllers_m.size(); ++i) {
+    /*for(std::size_t i = 0; i < controllers_m.size(); ++i) {
         clog << controllers_m[i].getName() << " " << controllers_m[i].getOrder() << endl;
-    }
+    }*/
 
     //if (enumerateControllers() > 0)
     //{
@@ -116,10 +118,10 @@ Mark6::Mark6(void)
 
     //enumerateDevices();
 
-   /* if (enumerateDevices() > 0)
+    if (enumerateDevices() > 0)
     {
 	manageDeviceChange();
-    } */
+    } 
 }
 
 /**
@@ -267,6 +269,7 @@ void Mark6::manageDeviceChange()
     // new devices have been found
     if (newDevices_m.size() > 0)
     {
+         clog << "looping over new devices" << endl;
          tempDevices.swap(newDevices_m);
          
         // validate all new devices
@@ -275,7 +278,7 @@ void Mark6::manageDeviceChange()
             //cout << "Processing device: " << i << endl;
             if (tempDevices[i].isValid() == false)
             {
-                cout << "disk " << tempDevices[i].getName() << " is not a valid Mark6 disk device. Discarding." << endl;
+                clog << "disk " << tempDevices[i].getName() << " is not a valid Mark6 disk device. Discarding." << endl;
                 continue;
             }
 
@@ -332,7 +335,7 @@ void Mark6::manageDeviceChange()
         // loop over all removed devices
         for(std::vector<Mark6DiskDevice>::size_type i = 0; i != tempRemoveDevices.size(); i++) {
                        
-	    cout << "Removing device: " << tempRemoveDevices[i].getName() << endl;
+	    clog << "Removing device: " << tempRemoveDevices[i].getName() << endl;
             if ((disk = getMountedDevice(tempRemoveDevices[i].getName())) != NULL)
             {
                 // get the module slot           
@@ -343,11 +346,11 @@ void Mark6::manageDeviceChange()
                                 
                 if (disk->isMounted() == false)
                 {
-                    cout << " now is unmounted " << endl;    
+                    clog << " now is unmounted " << endl;    
                       
                     // remove disk from the vector of mounted devices
                     removeMountedDevice(tempRemoveDevices[i]);
-                    cout << "Removed: " << tempRemoveDevices[i].getName() << " in slot: " << slot << endl;
+                    clog << "Removed: " << tempRemoveDevices[i].getName() << " in slot: " << slot << endl;
                             
                     if (slot != -1)
                         modules_m[slot].removeDiskDevice(tempRemoveDevices[i]);
@@ -358,7 +361,7 @@ void Mark6::manageDeviceChange()
                 {
                     // something didn't work try again on the next go
                     removedDevices_m.push_back( tempRemoveDevices[i]);
-                    cout << " now is still mounted ";
+                    clog << " now is still mounted ";
                 }
             }    
             
@@ -517,7 +520,7 @@ void Mark6::pollDevices()
                 
                string action(udev_device_get_action(dev));
                 string devtype(udev_device_get_devtype(dev));
-
+/*
                cout << "hotplug[" << udev_device_get_action(dev) << "] ";
                cout << udev_device_get_devnode(dev) << ",";
                cout << udev_device_get_subsystem(dev) << ",";
@@ -529,17 +532,16 @@ void Mark6::pollDevices()
                cout << " sysname="<< udev_device_get_sysname(dev) << endl;
                cout << " devnode="<< udev_device_get_devnode(dev) << endl;
                cout << " devnum="<< udev_device_get_devnum(dev) << endl;
-                //cout << " range="<< udev_device_get_sysattr_value(dev,"range")<< endl;
 
-               /*udev_device  *parent = udev_device_get_parent(dev);
+		udev_device  *parent = udev_device_get_parent(dev);
                 cout << "parent ";
                 
                 
-                 *             cout << " subsystem = " << udev_device_get_subsystem(parent) ;
+                cout << " subsystem = " << udev_device_get_subsystem(parent) ;
                 cout << " devtype = " << udev_device_get_devtype(parent);
                 cout << " devpath="<< udev_device_get_devpath(parent) << endl;
-               cout << " syspath="<< udev_device_get_syspath(parent) << endl;
-               cout << " sysname="<< udev_device_get_sysname(parent) << endl;
+                cout << " syspath="<< udev_device_get_syspath(parent) << endl;
+                cout << " sysname="<< udev_device_get_sysname(parent) << endl;
                 cout << " devnum = " << udev_device_get_devnum(parent) << endl;
                 cout << endl;
 */
@@ -547,8 +549,8 @@ void Mark6::pollDevices()
                {
                     if (devtype == "disk")
                     {
-                        //cout << " serial_short="<< udev_device_get_property_value(dev,"ID_SERIAL_SHORT") << endl;
-                        //cout << " sas_address="<< udev_device_get_sysattr_value(parent,"sas_address") << endl;
+                       // cout << " serial_short="<< udev_device_get_property_value(dev,"ID_SERIAL_SHORT") << endl;
+                       // cout << " sas_address="<< udev_device_get_sysattr_value(parent,"sas_address") << endl;
                        
                        
                         // add new disk device
@@ -562,9 +564,9 @@ void Mark6::pollDevices()
                             newDevices_m.push_back(disk);
                             changeCount++;
 			}
-                        cout << "Controller ID=" << disk.getControllerId() << endl;
-                        cout << "Disk ID=" << disk.getDiskId() << endl;
-                        cout << "Disk serial=" << disk.getSerial() << endl;
+                        //cout << "Controller ID=" << disk.getControllerId() << endl;
+                        //cout << "Disk ID=" << disk.getDiskId() << endl;
+                        //cout << "Disk serial=" << disk.getSerial() << endl;
                     }
                     else if (devtype == "partition")
                     {   
@@ -610,23 +612,24 @@ void Mark6::pollDevices()
                 cout << endl;
 */
                 
-                cout << "Currently mounted modules:" << endl;
                 clog << "Currently mounted modules:" << endl;
-                for (int iSlot=0; iSlot < 4; iSlot++)
+                for (int iSlot=0; iSlot < controllers_m.size()*2; iSlot++)
                 {
                     //modules_m[iSlot].isComplete();
                     //cout << "Slot " << iSlot << " = " << modules_m[iSlot].getEMSN() << " (" << modules_m[iSlot].getNumDiskDevices() << " disks) " << modules_m[iSlot].isComplete() << endl;
-                    cout << "Slot " << iSlot+1 << " = " << modules_m[iSlot].getEMSN() << " (" << modules_m[iSlot].getNumDiskDevices() << " disks) " << endl;
+                    clog << "Slot " << iSlot+1 << " = " << modules_m[iSlot].getEMSN() << " (" << modules_m[iSlot].getNumDiskDevices() << " disks) " << endl;
 		    if (modules_m[iSlot].getNumDiskDevices() > 0)
 		    {
 			//if (modules_m[iSlot].diskDevices_m.empty()) { continue; }
 			map<int, string> serials = modules_m[iSlot].getDiskDevice(0)->getMeta().getSerials();
+/*			
 			// loop over all serials found in the meta data
 			map<int, string>::iterator it;
 			for ( it = serials.begin(); it != serials.end(); it++ )
 			{
 			   cout << "matching " << it->first << " " << it->second << endl;
 			}
+*/
 		    }
                 }
 
@@ -669,9 +672,12 @@ void Mark6::writeControllerConfig()
         if ((distance(sorted.begin(), it) == 1) && host0)
         {
           conf << "host0" << endl;
+          host0 = false;
         } 
         conf << *it << endl;
     }
+    if (host0)
+      conf << "host0" << endl;
 
     conf.close();
 
@@ -679,6 +685,15 @@ void Mark6::writeControllerConfig()
 }
 
 
+/**
+ * Reads the controller configuration file /etc/default/marks_slots
+ * in order to determine the mapping between controller and slots.
+ * The first controller in the file will mount its disks in slots 1&2
+ * The seconds one in slots 3&$ and so forth
+ *
+ * @returns the number of controllers found in the config file
+ * @returns -1 if the copnfig file cannot be read
+ * **/
 int Mark6::readControllerConfig()
 {
     std::string line;
@@ -705,8 +720,9 @@ int Mark6::readControllerConfig()
         conf.close();
     }
     else
-        // write config 
-        writeControllerConfig();
+    {
+        return(-1);
+    }
 
     return(count);
 }
@@ -750,7 +766,7 @@ struct udev_enumerate *enumerate;
         controller.setPath(udev_device_get_devpath(dev));
         controller.setSysNum(udev_device_get_sysnum(dev));
 
-        clog << " found SAS controller: " << controller.getName() << " " << controller.getPath() << endl;
+        clog << "Detected SAS controller: " << controller.getName() << " " << controller.getPath() << endl;
 
         controllers_m.push_back(controller);
     }
@@ -772,7 +788,7 @@ int Mark6::enumerateDevices()
     clog << "enumerateDevices" << endl;
 
     enumerate = udev_enumerate_new(udev_m);
-    udev_enumerate_add_match_subsystem(enumerate, "sas_host");
+    udev_enumerate_add_match_subsystem(enumerate, "block");
     udev_enumerate_scan_devices(enumerate);
     devices = udev_enumerate_get_list_entry(enumerate);
     
@@ -783,18 +799,22 @@ int Mark6::enumerateDevices()
         
         path = udev_list_entry_get_name(dev_list_entry);
         dev = udev_device_new_from_syspath(udev_m, path);
-        cout << udev_device_get_sysname(dev) <<  " " << path<< endl;
-}
+        //cout << udev_device_get_sysname(dev) <<  " " << path<< endl;
         
-  /*      if(!dev)
+        //udev_device  *parent = udev_device_get_parent(dev);
+        //string sasAddr = udev_device_get_sysattr_value(parent,"sas_address");
+        //long diskId = strtol(sasAddr.substr(11,1).c_str(), NULL, 16);
+        //cout << " sas_addr: " <<  sasAddr << " " <<  diskId<< endl;
+
+        
+        if(!dev)
         {
             // error receiving device, skip it
             continue;
         }
-        cout << "hallo" << endl;
 
         string devtype(udev_device_get_devtype(dev));
-	cout << devtype << path <<endl;
+	//cout << devtype << path <<endl;
         
 	udev_device  *parent = udev_device_get_parent(dev);
 
@@ -808,7 +828,7 @@ int Mark6::enumerateDevices()
 			const char *serial = udev_device_get_property_value(dev,"ID_SERIAL_SHORT");
 	
 			if (sysname != NULL)
-			 
+			{ 
 				string devName = string(sysname);                               
 				Mark6DiskDevice disk(devName);
 
@@ -841,8 +861,7 @@ int Mark6::enumerateDevices()
 		}
 	    }
 	}
-*/
-    
+
     udev_enumerate_unref(enumerate);
 
     return(devCount);
@@ -853,6 +872,7 @@ int Mark6::enumerateDevices()
  * Obtains the sequence number of the disk device on the SAS controller by parsing the contents of the sas_device attribute provided by UDEV.
  * If cabeling of the Mark6 SAS controller 
  * is done correctly this sequence number should correspond to the module LEDs on the frontpack of the diskpack.
+ * Note that the disk id corresponds to the SAS phy* parameter not the port number which can be arbitrary
  * @returns the disk id; -1 if the id could not be parsed from the given sas address
  */
 long Mark6::parseDiskId(std::string sasAddress)
@@ -861,6 +881,7 @@ long Mark6::parseDiskId(std::string sasAddress)
     if (sasAddress.size() < 11)     
         return(-1);
     
+    //clog << "parseDiskId " << sasAddress << endl;
     return(strtol(sasAddress.substr(11,1).c_str(), NULL, 16));
 }
 
@@ -877,20 +898,38 @@ long Mark6::parseDiskId(std::string sasAddress)
  */
 int Mark6::parseControllerId(string devpath)
 {
-    cout << "devpath=" << devpath << endl;
+    string name = "";
+
+    //cout << "devpath=" << devpath << endl;
     
     size_t end;
     size_t found = devpath.find("host");
+
+    // determine name of SAS host adapter
     if (found != string::npos)
     {
         end = devpath.find("/", found);
         if (end != string::npos)
         {
-            string num = devpath.substr(found+4, end-found-4);
-        //    cout << "extracted controllerId=" <<  num << endl;
-            return(atoi( num.c_str()));
+            name = devpath.substr(found, end-found);
         }
     }
+
+    //cout << "adapter name: " << name << endl;
+
+    // lookup controller id
+    for(std::size_t i = 0; i < controllers_m.size(); ++i) {
+        //clog << controllers_m[i].getName() << endl;
+	if (controllers_m[i].getName() == name)
+        {
+            //clog << "order : " << controllers_m[i].getOrder() << endl;
+	    return(controllers_m[i].getOrder());
+        }
+		
+    }
+    return(-1);
+
+
 
     /*size_t found = devpath.find("host0");
     if (found != string::npos)
@@ -901,5 +940,4 @@ int Mark6::parseControllerId(string devpath)
     if (found != string::npos)
         return(1);
    */ 
-    return(-1);
 }
